@@ -18,6 +18,23 @@ python = "^3.9"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.0.0"
+moto = "^4.2.5"
+boto3 = "^1.28.61"
+redis = "^5.0.1"
+pytest-asyncio = "^0.21.1"
+boto3-stubs = {extras = ["dynamodb"], version = "^1.28.62"}
+
+[tool.poetry.group.dynamodb]
+optional = true
+
+[tool.poetry.group.dynamodb.dependencies]
+boto3 = "^1.28.61"
+
+[tool.poetry.group.redis]
+optional = true
+
+[tool.poetry.group.redis.dependencies]
+redis = "^5.0.1"
 
 [tool.ruff]
 select = [
@@ -33,3 +50,6 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
