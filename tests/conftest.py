@@ -1,13 +1,12 @@
 import os
 from unittest.mock import patch
 
-import boto3
 import pytest
-from moto import mock_dynamodb
 
 from tbc import (
     DynamoDBTokenBucketCarousel,
     InMemoryTokenBucketCarousel,
+    RedisTokenBucketCarousel,
     TokenBucketCarousel,
 )
 
@@ -23,9 +22,19 @@ def aws_credentials():
 
 @pytest.fixture(scope="function")
 def dynamodb_client(aws_credentials):
+    import boto3
+    from moto import mock_dynamodb
+
     with mock_dynamodb():
         conn = boto3.client("dynamodb")
         yield conn
+
+
+@pytest.fixture(scope="function")
+def redis_client():
+    import fakeredis
+
+    yield fakeredis.FakeStrictRedis(decode_responses=True)
 
 
 @pytest.fixture
@@ -56,14 +65,16 @@ def dynamodb_token_bucket(dynamodb_client):
     )
 
 
-# redis_token_bucket_carousel = RedisTokenBucketCarousel({"url": "redis://localhost:6379/0"})
+@pytest.fixture
+def redis_token_bucket(redis_client):
+    return RedisTokenBucketCarousel(redis_client=redis_client)
 
 
 @pytest.fixture(
     params=[
         "in_memory_token_bucket",
         "dynamodb_token_bucket",
-        # 'redis_token_bucket',
+        "redis_token_bucket",
     ]
 )
 def token_bucket(request):

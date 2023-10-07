@@ -19,10 +19,11 @@ python = "^3.9"
 [tool.poetry.group.test.dependencies]
 pytest = "^7.0.0"
 boto3 = "^1.28.61"
-redis = "^5.0.1"
+redis = {extras = ["hiredis"], version = "^5.0.1"}
 pytest-asyncio = "^0.21.1"
 boto3-stubs = {extras = ["dynamodb"], version = "^1.28.62"}
 moto = {extras = ["dynamodb"], version = "^4.2.5"}
+fakeredis = {extras = ["lua"], version = "^2.19.0"}
 
 [tool.poetry.group.dynamodb]
 optional = true
@@ -34,7 +35,7 @@ boto3 = "^1.28.61"
 optional = true
 
 [tool.poetry.group.redis.dependencies]
-redis = "^5.0.1"
+redis = {extras = ["hiredis"], version = "^5.0.1"}
 
 [tool.ruff]
 select = [
