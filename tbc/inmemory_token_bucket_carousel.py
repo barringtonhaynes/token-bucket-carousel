@@ -1,5 +1,5 @@
-from .abstract_token_bucket_carousel import Model, Region, TokenBucketCarousel
-from .errors import InvalidModelError, InvalidRegionError
+from tbc.abstract_token_bucket_carousel import Model, Region, TokenBucketCarousel
+from tbc.errors import InvalidModelError, InvalidRegionError
 
 
 class InMemoryTokenBucketCarousel(TokenBucketCarousel):
@@ -31,14 +31,12 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
             "token_allowance": token_allowance,
             "token_refresh_seconds": token_refresh_seconds,
             "meta": meta,
-            "tokens": token_allowance,
-            "last_refresh": None,
+            "tokens_remaining": token_allowance,
+            "last_refresh": self._current_time(),
         }
 
     async def read_model_region(self, model: Model, region: Region):
-        if model not in self.models:
-            raise InvalidModelError(f"Model {model} does not exist")
-        if region not in self.models[model]:
+        if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
         return self.models[model][region]
 
@@ -50,36 +48,32 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
         token_refresh_seconds: int,
         meta: dict,
     ):
-        if model not in self.models:
-            raise InvalidModelError(f"Model {model} does not exist")
-        if region not in self.models[model]:
+        if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
-        self.models[model][region] = {
-            "token_allowance": token_allowance,
-            "token_refresh_seconds": token_refresh_seconds,
-            "meta": meta,
-            "tokens": token_allowance,
-            "last_refresh": None,
-        }
+        self.models[model][region]["token_allowance"] = token_allowance
+        self.models[model][region]["token_refresh_seconds"] = token_refresh_seconds
+        self.models[model][region]["meta"] = meta
 
     async def delete_model_region(self, model: Model, region: Region):
-        if model not in self.models:
-            raise InvalidModelError(f"Model {model} does not exist")
-        if region not in self.models[model]:
+        if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
         del self.models[model][region]
 
     async def replenish_tokens(self, model: Model, region: Region):
-        if model not in self.models:
-            raise InvalidModelError(f"Model {model} does not exist")
-        if region not in self.models[model]:
+        if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
-        self.models[model][region]["tokens"] = self.models[model][region][
+        self.models[model][region]["tokens_remaining"] = self.models[model][region][
             "token_allowance"
         ]
+        self.models[model][region]["last_refresh"] = self._current_time()
 
     async def request_tokens(
-        self, model: Model, required_tokens: int, fallback_models: int, allowed_regions
+        self,
+        model: Model,
+        required_tokens: int,
+        fallback_models: set[Model],
+        allowed_regions: set[Region],
+        preferred_region: Region,
     ):
         if model not in self.models:
             raise InvalidModelError(f"Model {model} does not exist")

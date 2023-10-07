@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from typing import NewType
 
@@ -7,6 +8,9 @@ Region = NewType("Region", str)
 
 class TokenBucketCarousel(ABC):
     """Abstract base class for a token bucket carousel"""
+
+    def _current_time(self):
+        return int(time.time())
 
     @abstractmethod
     async def list_models(self) -> set[Model]:
@@ -122,6 +126,7 @@ class TokenBucketCarousel(ABC):
         required_tokens: int,
         fallback_models: set[Model],
         allowed_regions: set[Region],
+        preferred_region: Region,
     ):
         """Request tokens from the carousel
 
@@ -130,6 +135,7 @@ class TokenBucketCarousel(ABC):
             required_tokens (int): Number of tokens required
             fallback_models (set[Model]): Models to fallback to if the requested model does not have enough tokens
             allowed_regions (set[Region]): Regions to request tokens from
+            preferred_region (Region): Preferred region to request tokens from
 
         Raises:
             NotImplementedError: _description_

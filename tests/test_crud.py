@@ -2,39 +2,26 @@ import pytest
 
 from tbc.abstract_token_bucket_carousel import TokenBucketCarousel
 from tbc.errors import InvalidModelError, InvalidRegionError
-from tbc.inmemory_token_bucket_carousel import InMemoryTokenBucketCarousel
-
-token_bucket_metas = [
-    (InMemoryTokenBucketCarousel, {}),
-]
-
-
-@pytest.fixture(params=token_bucket_metas)
-def token_bucket(request):
-    token_bucket_class, meta_data = request.param
-    return token_bucket_class(**meta_data)
-
-
-@pytest.fixture(scope="function")
-async def populated_token_bucket(token_bucket: TokenBucketCarousel):
-    await token_bucket.create_model_region(
-        "MODEL-1", "uk", 1, 1, {"model": "MODEL-1", "region": "uk"}
-    )
-    await token_bucket.create_model_region(
-        "MODEL-1", "us", 5, 1, {"model": "MODEL-1", "region": "us"}
-    )
-    await token_bucket.create_model_region(
-        "MODEL-2", "uk", 10, 1, {"model": "MODEL-2", "region": "uk"}
-    )
-    await token_bucket.create_model_region(
-        "MODEL-2", "us", 20, 1, {"model": "MODEL-2", "region": "us"}
-    )
-    return token_bucket
 
 
 async def test_list_models(populated_token_bucket: TokenBucketCarousel):
     models = await populated_token_bucket.list_models()
+    print("modelsy", models)
     assert models == {"MODEL-1", "MODEL-2"}, "Models not listed"
+
+
+async def test_list_100_models(token_bucket: TokenBucketCarousel):
+    for i in range(100):
+        for j in range(2):
+            await token_bucket.create_model_region(
+                f"MODEL-{i}",
+                f"uk-{j}",
+                1,
+                1,
+                {"model": f"MODEL-{i}", "region": f"uk-{j}"},
+            )
+    models = await token_bucket.list_models()
+    assert len(models) == 100, "Models not listed"
 
 
 async def test_list_model_does_not_exist(populated_token_bucket: TokenBucketCarousel):
@@ -75,8 +62,8 @@ async def test_read_model_region(populated_token_bucket: TokenBucketCarousel):
         "token_allowance": 1,
         "token_refresh_seconds": 1,
         "meta": {"model": "MODEL-1", "region": "uk"},
-        "tokens": 1,
-        "last_refresh": None,
+        "tokens_remaining": 1,
+        "last_refresh": 12345,
     }, "Region not read"
 
 
@@ -98,8 +85,8 @@ async def test_update_model_region(populated_token_bucket: TokenBucketCarousel):
         "token_allowance": 2,
         "token_refresh_seconds": 2,
         "meta": {"model": "MODEL-1", "region": "uk"},
-        "tokens": 2,
-        "last_refresh": None,
+        "tokens_remaining": 1,
+        "last_refresh": 12345,
     }, "Region not updated"
 
 
