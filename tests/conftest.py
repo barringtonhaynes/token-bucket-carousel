@@ -83,18 +83,18 @@ def token_bucket(request):
 
 
 @pytest.fixture(scope="function")
-async def populated_token_bucket(token_bucket: TokenBucketCarousel):
+def populated_token_bucket(token_bucket: TokenBucketCarousel):
     with patch.object(token_bucket, "_current_time", return_value=12345):
-        await token_bucket.create_model_region(
+        token_bucket.create_model_region(
             "MODEL-1", "uk", 1, 1, {"model": "MODEL-1", "region": "uk"}
         )
-        await token_bucket.create_model_region(
+        token_bucket.create_model_region(
             "MODEL-1", "us", 5, 1, {"model": "MODEL-1", "region": "us"}
         )
-        await token_bucket.create_model_region(
+        token_bucket.create_model_region(
             "MODEL-2", "uk", 10, 1, {"model": "MODEL-2", "region": "uk"}
         )
-        await token_bucket.create_model_region(
+        token_bucket.create_model_region(
             "MODEL-2", "us", 20, 1, {"model": "MODEL-2", "region": "us"}
         )
     return token_bucket

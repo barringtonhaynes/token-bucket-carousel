@@ -13,7 +13,7 @@ class TokenBucketCarousel(ABC):
         return int(time.time())
 
     @abstractmethod
-    async def list_models(self) -> set[Model]:
+    def list_models(self) -> set[Model]:
         """List all models in the carousel
 
         Raises:
@@ -25,7 +25,7 @@ class TokenBucketCarousel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def list_model_regions(self, model: Model) -> set[Region]:
+    def list_model_regions(self, model: Model) -> set[Region]:
         """List all regions for a model
 
         Args:
@@ -40,7 +40,7 @@ class TokenBucketCarousel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def create_model_region(
+    def create_model_region(
         self,
         model: Model,
         region: Region,
@@ -63,7 +63,7 @@ class TokenBucketCarousel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def read_model_region(self, model: Model, region: Region):
+    def read_model_region(self, model: Model, region: Region):
         """Read the current state of a region
 
         Args:
@@ -76,7 +76,7 @@ class TokenBucketCarousel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def update_model_region(
+    def update_model_region(
         self,
         model: Model,
         region: Region,
@@ -98,7 +98,7 @@ class TokenBucketCarousel(ABC):
         """
         raise NotImplementedError
 
-    async def delete_model_region(self, model: Model, region: Region):
+    def delete_model_region(self, model: Model, region: Region):
         """Delete a region
 
         Args:
@@ -111,7 +111,7 @@ class TokenBucketCarousel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def replenish_tokens(self, model: Model, region: Region):
+    def replenish_tokens(self, model: Model, region: Region):
         """Replenish tokens in the carousel
 
         Raises:

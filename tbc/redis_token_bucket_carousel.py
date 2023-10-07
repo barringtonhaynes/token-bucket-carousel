@@ -36,17 +36,17 @@ class RedisTokenBucketCarousel(TokenBucketCarousel):
             return f"{self.namespace}:{model}"
         return f"{self.namespace}:{model}:{region}"
 
-    async def list_models(self) -> set[Model]:
+    def list_models(self) -> set[Model]:
         keys = self.redis_client.keys(self._key("*"))
         return {key.split(":")[-2] for key in keys}
 
-    async def list_model_regions(self, model: Model) -> set[Region]:
+    def list_model_regions(self, model: Model) -> set[Region]:
         keys = self.redis_client.keys(self._key(model, "*"))
         if keys:
             return {key.split(":")[-1] for key in keys}
         raise InvalidModelError(f"Model {model} does not exist")
 
-    async def create_model_region(
+    def create_model_region(
         self,
         model: Model,
         region: Region,
@@ -70,7 +70,7 @@ class RedisTokenBucketCarousel(TokenBucketCarousel):
                 raise ValueError(f"Model {model} already has region {region}") from err
             raise
 
-    async def read_model_region(self, model: Model, region: Region):
+    def read_model_region(self, model: Model, region: Region):
         data = self.redis_client.hgetall(self._key(model, region))
         if not data:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
@@ -82,7 +82,7 @@ class RedisTokenBucketCarousel(TokenBucketCarousel):
             "last_refresh": int(data["last_refresh"]),
         }
 
-    async def update_model_region(
+    def update_model_region(
         self,
         model: Model,
         region: Region,
@@ -106,12 +106,12 @@ class RedisTokenBucketCarousel(TokenBucketCarousel):
                 ) from err
             raise
 
-    async def delete_model_region(self, model: Model, region: Region):
+    def delete_model_region(self, model: Model, region: Region):
         key_count = self.redis_client.delete(self._key(model, region))
         if key_count == 0:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
 
-    async def replenish_tokens(self, model: Model, region: Region):
+    def replenish_tokens(self, model: Model, region: Region):
         raise NotImplementedError
 
     async def request_tokens(
@@ -120,5 +120,6 @@ class RedisTokenBucketCarousel(TokenBucketCarousel):
         required_tokens: int,
         fallback_models: set[Model],
         allowed_regions: set[Region],
+        preferred_region: Region,
     ):
         raise NotImplementedError

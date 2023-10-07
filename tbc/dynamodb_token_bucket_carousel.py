@@ -14,7 +14,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
         self.table_name = table_name
         self.models = {}
 
-    async def list_models(self) -> set[Model]:
+    def list_models(self) -> set[Model]:
         models = set()
         last_evaluated_key = None
 
@@ -38,7 +38,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
 
         return models
 
-    async def list_model_regions(self, model: Model) -> set[Region]:
+    def list_model_regions(self, model: Model) -> set[Region]:
         response = self.dynamodb_client.query(
             TableName=self.table_name,
             KeyConditionExpression="#model = :model",
@@ -50,7 +50,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
             return {item["Region"]["S"] for item in response["Items"]}
         raise InvalidModelError(f"Model {model} does not exist")
 
-    async def create_model_region(
+    def create_model_region(
         self,
         model: Model,
         region: str,
@@ -76,7 +76,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
         except self.dynamodb_client.exceptions.ConditionalCheckFailedException as err:
             raise ValueError(f"Model {model} already has region {region}") from err
 
-    async def read_model_region(self, model: Model, region: Region):
+    def read_model_region(self, model: Model, region: Region):
         response = self.dynamodb_client.get_item(
             TableName=self.table_name,
             Key={"Model": {"S": model}, "Region": {"S": region}},
@@ -91,7 +91,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
             "meta": deserializer.deserialize(response["Item"]["Meta"]),
         }
 
-    async def update_model_region(
+    def update_model_region(
         self,
         model: Model,
         region: Region,
@@ -117,7 +117,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
                 f"Model {model} does not have region {region}"
             ) from err
 
-    async def delete_model_region(self, model: Model, region: Region):
+    def delete_model_region(self, model: Model, region: Region):
         try:
             self.dynamodb_client.delete_item(
                 TableName=self.table_name,
@@ -130,7 +130,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
                 f"Model {model} does not have region {region}"
             ) from err
 
-    async def replenish_tokens(self, model: Model, region: Region):
+    def replenish_tokens(self, model: Model, region: Region):
         # self.dynamodb_client.update_item(
         #     TableName=self.table_name,
         #     Key={"Model": {"S": model}, "Region": {"S": region}},

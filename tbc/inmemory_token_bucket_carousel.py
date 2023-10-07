@@ -6,16 +6,16 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
     def __init__(self):
         self.models = {}
 
-    async def list_models(self) -> set[Model]:
+    def list_models(self) -> set[Model]:
         return set(self.models.keys())
 
-    async def list_model_regions(self, model: Model) -> set[Region]:
+    def list_model_regions(self, model: Model) -> set[Region]:
         try:
             return set(self.models[model].keys())
         except KeyError as err:
             raise InvalidModelError(f"Model {model} does not exist") from err
 
-    async def create_model_region(
+    def create_model_region(
         self,
         model: Model,
         region: Region,
@@ -35,12 +35,12 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
             "last_refresh": self._current_time(),
         }
 
-    async def read_model_region(self, model: Model, region: Region):
+    def read_model_region(self, model: Model, region: Region):
         if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
         return self.models[model][region]
 
-    async def update_model_region(
+    def update_model_region(
         self,
         model: Model,
         region: Region,
@@ -54,12 +54,12 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
         self.models[model][region]["token_refresh_seconds"] = token_refresh_seconds
         self.models[model][region]["meta"] = meta
 
-    async def delete_model_region(self, model: Model, region: Region):
+    def delete_model_region(self, model: Model, region: Region):
         if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
         del self.models[model][region]
 
-    async def replenish_tokens(self, model: Model, region: Region):
+    def replenish_tokens(self, model: Model, region: Region):
         if model not in self.models or region not in self.models[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
         self.models[model][region]["tokens_remaining"] = self.models[model][region][
