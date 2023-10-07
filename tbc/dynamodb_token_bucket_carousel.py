@@ -53,7 +53,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
     async def create_model_region(
         self,
         model: Model,
-        region_name: str,
+        region: str,
         token_allowance: int,
         token_refresh_seconds: int,
         meta: dict,
@@ -63,7 +63,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
                 TableName=self.table_name,
                 Item={
                     "Model": {"S": model},
-                    "Region": {"S": region_name},
+                    "Region": {"S": region},
                     "TokenAllowance": {"N": str(token_allowance)},
                     "TokenRefreshSeconds": {"N": str(token_refresh_seconds)},
                     "TokensRemaining": {"N": str(token_allowance)},
@@ -74,7 +74,7 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
                 ExpressionAttributeNames={"#model": "Model", "#region": "Region"},
             )
         except self.dynamodb_client.exceptions.ConditionalCheckFailedException as err:
-            raise ValueError(f"Model {model} already has region {region_name}") from err
+            raise ValueError(f"Model {model} already has region {region}") from err
 
     async def read_model_region(self, model: Model, region: Region):
         response = self.dynamodb_client.get_item(
