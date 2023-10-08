@@ -10,9 +10,9 @@ deserializer = TypeDeserializer()
 
 class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
     def __init__(self, dynamodb_client: DynamoDBClient, table_name: str):
+        super().__init__()
         self.dynamodb_client = dynamodb_client
         self.table_name = table_name
-        self.models = {}
 
     def list_models(self) -> set[Model]:
         models = set()
@@ -131,16 +131,24 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
             ) from err
 
     def replenish_tokens(self, model: Model, region: Region):
-        # self.dynamodb_client.update_item(
-        #     TableName=self.table_name,
-        #     Key={"Model": {"S": model}, "Region": {"S": region}},
-        #     UpdateExpression="SET TokenAllowance = TokensRemaining, #last_refresh = :now",
-        #     ExpressionAttributeValues={":now": {"N": str(self.current_time())}}, # TODO: use current time in seconds
-        #     ConditionExpression="attribute_not_exists(#model) AND attribute_not_exists(#region)",
-        #     ExpressionAttributeNames={
-        #         "#model": "Model", "#region": "Region", "#last_refresh": "LastRefresh"},
-        # )
-        raise NotImplementedError
+        try:
+            self.dynamodb_client.update_item(
+                TableName=self.table_name,
+                Key={"Model": {"S": model}, "Region": {"S": region}},
+                UpdateExpression="SET TokenAllowance = TokensRemaining, #last_refresh = :now",
+                ExpressionAttributeValues={":now": {"N": str(self._current_time())}},
+                ConditionExpression="attribute_exists(#model) AND attribute_exists(#region) AND #last_refresh < :now",
+                ExpressionAttributeNames={
+                    "#model": "Model",
+                    "#region": "Region",
+                    "#last_refresh": "LastRefresh",
+                },
+            )
+        except self.dynamodb_client.exceptions.ConditionalCheckFailedException as err:
+            print(err)
+            raise InvalidRegionError(
+                f"Model {model} does not have region {region}"
+            ) from err
 
     async def request_tokens(
         self,
@@ -149,5 +157,5 @@ class DynamoDBTokenBucketCarousel(TokenBucketCarousel):
         fallback_models: set[Model],
         allowed_regions: set[Region],
         preferred_region: Region,
-    ):
+    ) -> dict:
         raise NotImplementedError

@@ -24,12 +24,22 @@ else
 end
 """
 
+REPLENISH_LUA_SCRIPT = """
+local allowance = redis.call('HGET', KEYS[1], 'token_allowance')
+if not allowance then
+    return redis.error_reply('Token allowance not found')
+else
+    redis.call('HSET', KEYS[1], 'tokens_remaining', allowance, 'last_refresh', ARGV[1])
+    return redis.status_reply('OK')
+end
+"""
+
 
 class RedisTokenBucketCarousel(TokenBucketCarousel):
     def __init__(self, redis_client: Redis, namespace: str = "tbc"):
+        super().__init__()
         self.redis_client = redis_client
         self.namespace = namespace
-        self.models = {}
 
     def _key(self, model: Model, region: Region = None) -> str:
         if region is None:
@@ -112,14 +122,26 @@ class RedisTokenBucketCarousel(TokenBucketCarousel):
             raise InvalidRegionError(f"Model {model} does not have region {region}")
 
     def replenish_tokens(self, model: Model, region: Region):
-        raise NotImplementedError
+        try:
+            self.redis_client.eval(
+                REPLENISH_LUA_SCRIPT,
+                1,
+                self._key(model, region),
+                self._current_time(),
+            )
+        except ResponseError as err:
+            if "Token allowance not found" in str(err):
+                raise InvalidRegionError(
+                    f"Model {model} does not have region {region}"
+                ) from err
+            raise
 
     async def request_tokens(
         self,
         model: Model,
         required_tokens: int,
-        fallback_models: set[Model],
-        allowed_regions: set[Region],
-        preferred_region: Region,
+        fallback_models: set[Model] = None,
+        allowed_regions: set[Region] = None,
+        preferred_region: Region = None,
     ):
         raise NotImplementedError

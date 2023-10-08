@@ -4,14 +4,15 @@ from tbc.errors import InvalidModelError, InvalidRegionError
 
 class InMemoryTokenBucketCarousel(TokenBucketCarousel):
     def __init__(self):
-        self.models = {}
+        super().__init__()
+        self.__data = {}
 
     def list_models(self) -> set[Model]:
-        return set(self.models.keys())
+        return set(self.__data.keys())
 
     def list_model_regions(self, model: Model) -> set[Region]:
         try:
-            return set(self.models[model].keys())
+            return set(self.__data[model].keys())
         except KeyError as err:
             raise InvalidModelError(f"Model {model} does not exist") from err
 
@@ -23,11 +24,11 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
         token_refresh_seconds: int,
         meta: dict,
     ):
-        if model not in self.models:
-            self.models[model] = {}
-        if region in self.models[model]:
+        if model not in self.__data:
+            self.__data[model] = {}
+        if region in self.__data[model]:
             raise ValueError(f"Model {model} already has region {region}")
-        self.models[model][region] = {
+        self.__data[model][region] = {
             "token_allowance": token_allowance,
             "token_refresh_seconds": token_refresh_seconds,
             "meta": meta,
@@ -36,9 +37,9 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
         }
 
     def read_model_region(self, model: Model, region: Region):
-        if model not in self.models or region not in self.models[model]:
+        if model not in self.__data or region not in self.__data[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
-        return self.models[model][region]
+        return self.__data[model][region]
 
     def update_model_region(
         self,
@@ -48,39 +49,44 @@ class InMemoryTokenBucketCarousel(TokenBucketCarousel):
         token_refresh_seconds: int,
         meta: dict,
     ):
-        if model not in self.models or region not in self.models[model]:
+        if model not in self.__data or region not in self.__data[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
-        self.models[model][region]["token_allowance"] = token_allowance
-        self.models[model][region]["token_refresh_seconds"] = token_refresh_seconds
-        self.models[model][region]["meta"] = meta
+        self.__data[model][region]["token_allowance"] = token_allowance
+        self.__data[model][region]["token_refresh_seconds"] = token_refresh_seconds
+        self.__data[model][region]["meta"] = meta
 
     def delete_model_region(self, model: Model, region: Region):
-        if model not in self.models or region not in self.models[model]:
+        if model not in self.__data or region not in self.__data[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
-        del self.models[model][region]
+        del self.__data[model][region]
 
     def replenish_tokens(self, model: Model, region: Region):
-        if model not in self.models or region not in self.models[model]:
+        if model not in self.__data or region not in self.__data[model]:
             raise InvalidRegionError(f"Model {model} does not have region {region}")
-        self.models[model][region]["tokens_remaining"] = self.models[model][region][
+        self.__data[model][region]["tokens_remaining"] = self.__data[model][region][
             "token_allowance"
         ]
-        self.models[model][region]["last_refresh"] = self._current_time()
+        self.__data[model][region]["last_refresh"] = self._current_time()
 
     async def request_tokens(
         self,
         model: Model,
         required_tokens: int,
-        fallback_models: set[Model],
-        allowed_regions: set[Region],
-        preferred_region: Region,
-    ):
-        if model not in self.models:
+        fallback_models: set[Model] = None,
+        allowed_regions: set[Region] = None,
+        preferred_region: Region = None,
+    ) -> dict:
+        region = None
+        if model not in self.__data:
             raise InvalidModelError(f"Model {model} does not exist")
-        if len(allowed_regions) == 0:
-            allowed_regions = set(self.models[model].keys())
-        for region in allowed_regions:
-            if region not in self.models[model]:
-                raise InvalidRegionError(f"Model {model} does not have region {region}")
-        if model not in self.models:
-            raise InvalidModelError(f"Model {model} does not exist")
+        if allowed_regions is None or len(allowed_regions) == 0:
+            allowed_regions = set(self.__data[model].keys())
+        if preferred_region is not None and preferred_region in allowed_regions:
+            region = preferred_region
+        else:
+            for r in allowed_regions:
+                if self.__data[model][r]["tokens_remaining"] >= required_tokens:
+                    region = r
+                    break
+        self.__data[model][region]["tokens_remaining"] -= required_tokens
+        return self.__data[model][region]["meta"]

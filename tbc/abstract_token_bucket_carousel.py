@@ -9,6 +9,9 @@ Region = NewType("Region", str)
 class TokenBucketCarousel(ABC):
     """Abstract base class for a token bucket carousel"""
 
+    def __init__(self):
+        self._models = {}
+
     def _current_time(self):
         return int(time.time())
 
@@ -124,10 +127,10 @@ class TokenBucketCarousel(ABC):
         self,
         model: Model,
         required_tokens: int,
-        fallback_models: set[Model],
-        allowed_regions: set[Region],
-        preferred_region: Region,
-    ):
+        fallback_models: set[Model] = None,
+        allowed_regions: set[Region] = None,
+        preferred_region: Region = None,
+    ) -> dict:
         """Request tokens from the carousel
 
         Args:
@@ -141,3 +144,9 @@ class TokenBucketCarousel(ABC):
             NotImplementedError: _description_
         """
         raise NotImplementedError
+
+    def _get_regions(self, model: Model):
+        if model not in self._models:
+            regions = self.list_model_regions(model)
+            self._models[model] = {region: {} for region in regions}
+        return set(self._models[model].keys())
